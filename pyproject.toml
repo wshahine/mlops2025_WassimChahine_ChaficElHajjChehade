@@ -1,7 +1,26 @@
 [project]
 name = "ml-project"
 version = "0.1.0"
-description = "Add your description here"
+description = "End to End NYC Taxi Trip Duration Predictor"
 readme = "README.md"
 requires-python = ">=3.11"
-dependencies = []
+dependencies = [
+    "pandas",
+    "scikit-learn",
+    "numpy",
+    "joblib",
+    "lightgbm",    # Added specifically for the Kaggle model
+    "pyarrow"      # Required for optimal pandas performance with parquet/csv
+]
+
+[project.scripts]
+# This section maps the command 'uv run train' to the main function in your script
+train = "scripts.train:main"
+inference = "scripts.batch_inference:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/mlproject"]
