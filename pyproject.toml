@@ -9,8 +9,10 @@ dependencies = [
     "scikit-learn",
     "numpy",
     "joblib",
-    "lightgbm",    # Added specifically for the Kaggle model
-    "pyarrow"      # Required for optimal pandas performance with parquet/csv
+    "lightgbm", # Added specifically for the Kaggle model # Required for optimal pandas performance with parquet/csv
+    "pyarrow",
+    "matplotlib>=3.10.8",
+    "seaborn>=0.13.2",
 ]
 
 [project.scripts]
