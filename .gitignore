@@ -1,2 +1,9 @@
 test.csv
 train.csv
+# Ignore data folders
+data/
+src/mlproject/data/
+
+# Ignore specific file types
+*.csv
+*.parquet
