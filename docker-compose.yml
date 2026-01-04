@@ -1,6 +1,16 @@
-version: '3.8'
 services:
+  # Requirement: Must include app service
   app:
     build: .
     volumes:
+      # Mount data so the model saved in container appears on your laptop
       - ./data:/app/data
+    environment:
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+
+  # Requirement: Optional mlflow service
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v2.7.1
+    ports:
+      - "5000:5000"
+    command: mlflow server --backend-store-uri sqlite:///mlflow.db --default-artifact-root ./mlruns --host 0.0.0.0
