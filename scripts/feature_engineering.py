@@ -1,79 +1,69 @@
-import os
 import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+from pathlib import Path
 
-# --- 1. DYNAMIC PATH SETUP ---
-# This ensures the code finds the correct folder on Windows without path errors
-script_dir = os.path.dirname(os.path.abspath(__file__))
-project_root = os.path.dirname(script_dir)
+# --- 1. SETUP PATHS ---
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+INPUT_PATH = PROJECT_ROOT / "data" / "featured_data.parquet"
+OUTPUT_DIR = PROJECT_ROOT / "outputs" / "plots"
 
-# Build the correct paths to src/mlproject/data
-INPUT_PATH = os.path.join(project_root, "src", "mlproject", "data", "cleaned_data.parquet")
-OUTPUT_PATH = os.path.join(project_root, "src", "mlproject", "data", "featured_data.parquet")
-ZONE_PATH = os.path.join(project_root, "src", "mlproject", "data", "taxi_zone_lookup.csv")
+def visualize():
+    # Create output directory if it doesn't exist
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-def create_features():
-    # Check if input file exists
-    if not os.path.exists(INPUT_PATH):
-        print(f"Error: File not found at: {INPUT_PATH}")
-        print("Run preprocessing first!")
+    # Check if data exists
+    if not INPUT_PATH.exists():
+        print(f" Error: File not found at {INPUT_PATH}")
+        print("   Make sure you ran 'scripts/feature_engineering.py' first!")
         return
 
-    print(f"Loading cleaned data from {INPUT_PATH}...")
+    print(f" Loading data from {INPUT_PATH}...")
     df = pd.read_parquet(INPUT_PATH)
-
-    # --- 2. SMART COLUMN DETECTION ---
-    # Find the actual pickup time column (whether it is 'tpep', 'lpep', or just 'pickup')
-    datetime_col = None
-    for col in df.columns:
-        if "pickup_datetime" in col:
-            datetime_col = col
-            break
     
-    if datetime_col is None:
-        print(f"CRITICAL ERROR: No 'pickup_datetime' column found. Available columns: {df.columns.tolist()}")
-        return
-
-    # Automatically determine the dropoff column name based on the pickup name
-    dropoff_col = datetime_col.replace("pickup", "dropoff")
-    print(f"Using columns: '{datetime_col}' and '{dropoff_col}'")
-
-    # --- 3. CREATE FEATURES ---
-    # Convert to datetime objects using the DETECTED column names
-    df[datetime_col] = pd.to_datetime(df[datetime_col])
-    df[dropoff_col] = pd.to_datetime(df[dropoff_col])
-
-    df['pickup_hour'] = df[datetime_col].dt.hour
-    df['day_of_week'] = df[datetime_col].dt.dayofweek
-
-    # Create target: trip_duration (in minutes)
-    df['trip_duration'] = (df[dropoff_col] - df[datetime_col]).dt.total_seconds() / 60
-    
-    # Filter outliers (trips between 1 min and 3 hours)
-    df = df[(df['trip_duration'] > 1) & (df['trip_duration'] < 180)]
-
-    # --- 4. JOIN WITH TAXI ZONES ---
-    if os.path.exists(ZONE_PATH):
-        zones = pd.read_csv(ZONE_PATH)
-        # Join Pickup Zone
-        df = df.merge(zones[['LocationID', 'Borough']], left_on='PULocationID', right_on='LocationID', how='left')
-        df.rename(columns={'Borough': 'PU_Borough'}, inplace=True)
-        
-        # Encoding (Convert Boroughs to numeric codes)
-        df['PU_Borough_Code'] = df['PU_Borough'].astype('category').cat.codes
+    # Sample data if it's too huge (for faster plotting)
+    if len(df) > 100000:
+        print(f"   Data is large ({len(df)} rows). Sampling 100,000 rows for plotting...")
+        plot_df = df.sample(100000, random_state=42)
     else:
-        print(f"Warning: Zone file not found at {ZONE_PATH}. Skipping zone features.")
-        df['PU_Borough_Code'] = 0 
+        plot_df = df
 
-    # --- 5. SELECT & SAVE ---
-    features = ['passenger_count', 'trip_distance', 'pickup_hour', 'day_of_week', 'PU_Borough_Code', 'trip_duration']
-    
-    # Only keep features that actually exist in the dataframe
-    available_features = [f for f in features if f in df.columns]
-    final_df = df[available_features]
+    print(" Generating plots...")
 
-    print(f"Saving features to {OUTPUT_PATH}...")
-    final_df.to_parquet(OUTPUT_PATH, index=False)
-    print("Feature Engineering Complete.")
+    # --- PLOT 1: Trip Duration Distribution ---
+    plt.figure(figsize=(10, 6))
+    sns.histplot(plot_df['trip_duration'], bins=50, kde=True)
+    plt.title("Distribution of Trip Duration (min)")
+    plt.xlabel("Minutes")
+    plt.xlim(0, 60) # Focus on trips under 1 hour
+    plt.savefig(OUTPUT_DIR / "distribution_duration.png")
+    plt.close()
+    print(f"   Saved: {OUTPUT_DIR / 'distribution_duration.png'}")
+
+    # --- PLOT 2: Pickup Hour vs Trip Duration ---
+    plt.figure(figsize=(10, 6))
+    sns.boxplot(x='pickup_hour', y='trip_duration', data=plot_df)
+    plt.title("Trip Duration by Hour of Day")
+    plt.xlabel("Hour (0-23)")
+    plt.ylabel("Duration (min)")
+    plt.ylim(0, 60) # Zoom in
+    plt.savefig(OUTPUT_DIR / "duration_by_hour.png")
+    plt.close()
+    print(f"   Saved: {OUTPUT_DIR / 'duration_by_hour.png'}")
+
+    # --- PLOT 3: Trip Distance vs Duration (Correlation) ---
+    plt.figure(figsize=(10, 6))
+    sns.scatterplot(x='trip_distance', y='trip_duration', data=plot_df.sample(10000)) # Smaller sample for scatter
+    plt.title("Trip Distance vs. Duration")
+    plt.xlabel("Distance (miles)")
+    plt.ylabel("Duration (min)")
+    plt.xlim(0, 20)
+    plt.ylim(0, 100)
+    plt.savefig(OUTPUT_DIR / "distance_vs_duration.png")
+    plt.close()
+    print(f"   Saved: {OUTPUT_DIR / 'distance_vs_duration.png'}")
+
+    print(" Visualization Complete!")
 
 if __name__ == "__main__":
-    create_features()
+    visualize()
