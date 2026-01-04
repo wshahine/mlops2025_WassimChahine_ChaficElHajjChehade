@@ -2,55 +2,58 @@ import pandas as pd
 import joblib
 import os
 from datetime import datetime
- 
+from pathlib import Path
+
 # --- ROBUST PATH CONFIGURATION ---
-# 1. Get the folder where THIS script (batch_inference.py) is located
-script_dir = os.path.dirname(os.path.abspath(__file__))
- 
-# 2. Go up one level to the project root
-project_root = os.path.dirname(script_dir)
- 
-# 3. Define paths relative to the root
-MODEL_PATH = os.path.join(project_root, "data", "model.pkl")
-# Using the same featured data for now (or change this to your new inference file)
-INPUT_PATH = os.path.join(project_root, "src", "mlproject", "data", "featured_data.parquet")
-OUTPUT_DIR = os.path.join(project_root, "data", "predictions")
+# 1. Get the project root dynamically
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
+# 2. Define correct paths relative to root
+MODEL_PATH = PROJECT_ROOT / "data" / "model.pkl"
+
+# Corrected Input Path: Points to 'data/featured_data.parquet' in the root
+INPUT_PATH = PROJECT_ROOT / "data" / "featured_data.parquet"
+
+# Output Directory
+OUTPUT_DIR = PROJECT_ROOT / "data" / "predictions"
 # ---------------------------------
- 
+
 def predict():
-    print(f"Loading model from: {MODEL_PATH}")
-   
-    if not os.path.exists(MODEL_PATH):
-        print("❌ ERROR: Model not found!")
-        print("Run train.py first to generate the model.")
+    print(f" Starting Batch Inference...")
+    print(f"   Loading model from: {MODEL_PATH}")
+    
+    if not MODEL_PATH.exists():
+        print(" ERROR: Model not found!")
+        print("   Run 'uv run scripts/train.py' first to generate the model.")
         return
- 
+
     model = joblib.load(MODEL_PATH)
-   
-    print(f"Loading data from: {INPUT_PATH}")
-    if not os.path.exists(INPUT_PATH):
-        print(f"❌ ERROR: Input data not found at {INPUT_PATH}")
+    
+    print(f"   Loading data from: {INPUT_PATH}")
+    if not INPUT_PATH.exists():
+        print(f" ERROR: Input data not found at {INPUT_PATH}")
         return
- 
+
     df = pd.read_parquet(INPUT_PATH)
- 
-    # Prepare features (Remove target if it exists, to simulate real inference)
-    X = df.drop(columns=['trip_duration'], errors='ignore') # Ensure no target
- 
-    print("Running predictions...")
+
+    # Prepare features (Remove target 'trip_duration' if it exists)
+    # This ensures we are simulating real inference where we don't know the answer
+    X = df.drop(columns=['trip_duration'], errors='ignore') 
+
+    print(f"   Running predictions on {len(X)} rows...")
     predictions = model.predict(X)
- 
+
     # Save output
-    os.makedirs(OUTPUT_DIR, exist_ok=True)
-   
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    
     # Create a filename with today's date
     date_str = datetime.now().strftime("%Y%m%d_%H%M%S")
-    output_file = os.path.join(OUTPUT_DIR, f"{date_str}_predictions.csv")
- 
-    # Save just the predictions (or you can include X to see inputs too)
+    output_file = OUTPUT_DIR / f"{date_str}_predictions.csv"
+
+    # Save predictions
     pd.DataFrame({'prediction': predictions}).to_csv(output_file, index=False)
-   
-    print(f"✅ Predictions saved to: {output_file}")
- 
+    
+    print(f" Predictions saved to: {output_file}")
+
 if __name__ == "__main__":
     predict()
