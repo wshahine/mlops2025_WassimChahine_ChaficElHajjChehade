@@ -7,3 +7,4 @@ src/mlproject/data/
 # Ignore specific file types
 *.csv
 *.parquet
+awscliv2.zip
