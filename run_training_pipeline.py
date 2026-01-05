@@ -6,10 +6,15 @@ from sagemaker.sklearn.estimator import SKLearn
 from sagemaker.workflow.steps import ProcessingStep, TrainingStep
 from sagemaker.workflow.pipeline import Pipeline
 
-# --- CONFIGURATION (UPDATE THESE) ---
-ROLE_ARN = "arn:aws:iam::123456789012:role/service-role/AmazonSageMaker-ExecutionRole-2024"
-BUCKET = "your-sagemaker-bucket-name"
+# --- CONFIGURATION ---
+# I updated this with your specific Account ID and Role Name
+ROLE_ARN = "arn:aws:iam::989654687856:role/SageMakerExecutionRole"
+
+# I updated this with the bucket name we just chose
+BUCKET = "mlops-nyc-taxi-989654687856" 
+
 PROJECT_PREFIX = "nyc-taxi-duration"
+
 # ------------------------------------
 
 sagemaker_session = sagemaker.Session()
