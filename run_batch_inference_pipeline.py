@@ -7,10 +7,13 @@ from sagemaker.workflow.pipeline import Pipeline
 from sagemaker.inputs import TransformInput
 
 # --- CONFIGURATION ---
-ROLE_ARN = "arn:aws:iam::123456789012:role/service-role/AmazonSageMaker-ExecutionRole-2024"
-BUCKET = "your-sagemaker-bucket-name"
+# I updated this with your specific Account ID and Role Name
+ROLE_ARN = "arn:aws:iam::989654687856:role/SageMakerExecutionRole"
+
+# I updated this with the bucket name we just chose
+BUCKET = "mlops-nyc-taxi-989654687856" 
+
 PROJECT_PREFIX = "nyc-taxi-duration"
-MODEL_S3_URI = f"s3://{BUCKET}/models/model.tar.gz" # Path to trained model
 # ---------------------
 
 sagemaker_session = sagemaker.Session()
